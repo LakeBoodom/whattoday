@@ -22,61 +22,69 @@ export default function YearArc({
   const cy = size / 2;
   const r = 110;
   const strokeW = 7;
-  const circ = 2 * Math.PI * r;
 
-  // We split the arc into 4 seasonal segments
-  // Winter: 270°→360°+0°→90° (top), Spring: 90°→180° (left→bottom),
-  // Summer: 180°→270° (bottom), Autumn: 270°→360° (right)
-  // SVG 0° = 3 o'clock; we rotate -90° so 0° = top = Winter
+  // Coordinate system: 0° = top (12 o'clock), clockwise.
+  // The YEAR goes COUNTER-CLOCKWISE:
+  //   WINTER = top (0°)  →  SPRING = left (270°)  →  SUMMER = bottom (180°)  →  AUTUMN = right (90°)
+  // So yearProgress 0%→100% maps to 0°→360° counter-clockwise
+  // In CW degrees: progressDeg = 360 - (yearProgress / 100) * 360
 
-  // Seasonal arc segments (degrees from top, clockwise)
-  // Winter: 315–45 (top), Spring: 45–135, Summer: 135–225, Autumn: 225–315
-  const seasons = [
-    { name: 'WINTER', icon: '❄', deg: 0,   color: '#a7a6ff', startDeg: 315, endDeg: 45  },
-    { name: 'SPRING', icon: '🌿', deg: 270, color: '#c8e6a2', startDeg: 45,  endDeg: 135 },
-    { name: 'SUMMER', icon: '☀', deg: 180, color: '#f0b96f', startDeg: 135, endDeg: 225 },
-    { name: 'AUTUMN', icon: '🍂', deg: 90,  color: '#d99b64', startDeg: 225, endDeg: 315 },
-  ];
+  const progressDeg = 360 - (yearProgress / 100) * 360;
 
-  // Position label around circle
-  function labelPos(deg: number, offset = 44) {
+  // Convert degree (CW from top) to SVG x,y on the ring
+  function toXY(deg: number) {
     const rad = ((deg - 90) * Math.PI) / 180;
-    return {
-      x: cx + (r + offset) * Math.cos(rad),
-      y: cy + (r + offset) * Math.sin(rad),
-    };
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
   }
 
-  // Build a conic arc path segment
-  function arcPath(startDeg: number, endDeg: number) {
-    const toRad = (d: number) => ((d - 90) * Math.PI) / 180;
+  // Clockwise arc path (for season segment fills and CCW passed arc)
+  function cwArcPath(startDeg: number, endDeg: number) {
+    let eDeg = endDeg;
+    if (eDeg < startDeg) eDeg += 360;
+    const largeArc = eDeg - startDeg > 180 ? 1 : 0;
+    const s = toXY(startDeg);
+    const e = toXY(endDeg < startDeg ? endDeg + 360 : endDeg);
+    const eActual = toXY(endDeg);
+    void e;
+    const end = toXY(eDeg % 360);
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+  }
+
+  // Counter-clockwise arc path (for the "year passed so far" overlay)
+  function ccwArcPath(startDeg: number, endDeg: number) {
+    // Goes counter-clockwise from startDeg to endDeg
     let sDeg = startDeg;
     let eDeg = endDeg;
-    if (eDeg < sDeg) eDeg += 360;
-    const largeArc = eDeg - sDeg > 180 ? 1 : 0;
-    const sx = cx + r * Math.cos(toRad(sDeg));
-    const sy = cy + r * Math.sin(toRad(sDeg));
-    const ex = cx + r * Math.cos(toRad(eDeg));
-    const ey = cy + r * Math.sin(toRad(eDeg));
-    return `M ${sx} ${sy} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey}`;
+    // counterclockwise: startDeg > endDeg (in CW terms, we go the other way)
+    if (sDeg <= eDeg) sDeg += 360;
+    const span = sDeg - eDeg; // how many degrees CCW
+    const largeArc = span > 180 ? 1 : 0;
+    const s = toXY(startDeg);
+    const e = toXY(endDeg);
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 0 ${e.x} ${e.y}`;
   }
 
-  // Current position dot: yearProgress maps 0–100 → 0–360 degrees (from top)
-  const progressDeg = (yearProgress / 100) * 360;
-  const dotRad = ((progressDeg - 90) * Math.PI) / 180;
-  const dotX = cx + r * Math.cos(dotRad);
-  const dotY = cy + r * Math.sin(dotRad);
+  // Season segments — arranged counter-clockwise:
+  // WINTER: 315°→45° (top), SPRING: 225°→315° (left), SUMMER: 135°→225° (bottom), AUTUMN: 45°→135° (right)
+  const seasons = [
+    { name: 'WINTER', icon: '❄',  labelDeg: 0,   color: '#a7a6ff', startDeg: 315, endDeg: 45  },
+    { name: 'SPRING', icon: '🌿', labelDeg: 270, color: '#c8e6a2', startDeg: 225, endDeg: 315 },
+    { name: 'SUMMER', icon: '☀',  labelDeg: 180, color: '#f0b96f', startDeg: 135, endDeg: 225 },
+    { name: 'AUTUMN', icon: '🍂', labelDeg: 90,  color: '#d99b64', startDeg: 45,  endDeg: 135 },
+  ];
 
-  // Dotted segment ahead (next 10% of year)
-  const dottedEndDeg = progressDeg + 18; // ~5% ahead
-  function dottedPath() {
-    const toRad = (d: number) => ((d - 90) * Math.PI) / 180;
-    const sx = cx + r * Math.cos(toRad(progressDeg));
-    const sy = cy + r * Math.sin(toRad(progressDeg));
-    const ex = cx + r * Math.cos(toRad(dottedEndDeg));
-    const ey = cy + r * Math.sin(toRad(dottedEndDeg));
-    return `M ${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}`;
+  function labelPos(deg: number, offset = 46) {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return { x: cx + (r + offset) * Math.cos(rad), y: cy + (r + offset) * Math.sin(rad) };
   }
+
+  // Current position dot
+  const dot = toXY(progressDeg);
+
+  // Dotted "ahead" segment: CCW from progressDeg a bit further
+  const dottedEndDeg = progressDeg - 15;
+  const dottedStart = toXY(progressDeg);
+  const dottedEnd = toXY(dottedEndDeg);
 
   const cardStyle: React.CSSProperties = {
     background: 'linear-gradient(145deg, #07111f 0%, #0c1828 100%)',
@@ -85,7 +93,6 @@ export default function YearArc({
     boxShadow: '0 28px 80px rgba(0,0,0,.35)',
     padding: '32px 28px 28px',
     width: '100%',
-    maxWidth: 520,
   };
 
   return (
@@ -112,92 +119,77 @@ export default function YearArc({
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
             <filter id="glow-ring">
-              <feGaussianBlur stdDeviation="5" result="blur"/>
+              <feGaussianBlur stdDeviation="4" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
+            <linearGradient id="progressGrad" gradientUnits="userSpaceOnUse"
+              x1={cx} y1={cy - r} x2={cx - r * 0.7} y2={cy + r * 0.5}>
+              <stop offset="0%" stopColor="#a7a6ff"/>
+              <stop offset="45%" stopColor="#c8e6a2"/>
+              <stop offset="100%" stopColor="#f0b96f"/>
+            </linearGradient>
           </defs>
 
           {/* Background track */}
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(127,167,232,0.08)" strokeWidth={strokeW + 2}/>
 
-          {/* Seasonal arc segments */}
+          {/* Seasonal arc segments (dim background) */}
           {seasons.map((s) => (
             <path
               key={s.name}
-              d={arcPath(s.startDeg, s.endDeg)}
+              d={cwArcPath(s.startDeg, s.endDeg)}
               fill="none"
               stroke={s.color}
               strokeWidth={strokeW}
               strokeLinecap="round"
-              opacity={0.55}
+              opacity={0.3}
             />
           ))}
 
-          {/* Passed portion overlay (brighter) */}
+          {/* Passed portion — counter-clockwise from top (0°) to current position */}
           <path
-            d={arcPath(0, progressDeg)}
+            d={ccwArcPath(0, progressDeg)}
             fill="none"
             stroke="url(#progressGrad)"
             strokeWidth={strokeW}
             strokeLinecap="round"
-            opacity={0.85}
+            opacity={0.9}
             filter="url(#glow-ring)"
           />
 
-          <defs>
-            <linearGradient id="progressGrad" gradientUnits="userSpaceOnUse"
-              x1={cx} y1={cy - r} x2={cx + r * 0.7} y2={cy + r * 0.7}>
-              <stop offset="0%" stopColor="#a7a6ff"/>
-              <stop offset="40%" stopColor="#c8e6a2"/>
-              <stop offset="100%" stopColor="#f0b96f"/>
-            </linearGradient>
-          </defs>
-
-          {/* Dotted segment ahead */}
+          {/* Dotted segment "ahead" (CCW) */}
           <path
-            d={dottedPath()}
+            d={`M ${dottedStart.x} ${dottedStart.y} A ${r} ${r} 0 0 0 ${dottedEnd.x} ${dottedEnd.y}`}
             fill="none"
             stroke="#f0b96f"
             strokeWidth={3}
             strokeDasharray="3 5"
             strokeLinecap="round"
-            opacity={0.45}
+            opacity={0.4}
           />
 
           {/* Current position dot */}
-          <circle cx={dotX} cy={dotY} r={10} fill="#f0b96f" opacity={0.18} filter="url(#glow-gold)"/>
-          <circle cx={dotX} cy={dotY} r={6} fill="#f0b96f" opacity={0.7} filter="url(#glow-gold)"/>
-          <circle cx={dotX} cy={dotY} r={3.5} fill="#ffe9b3"/>
+          <circle cx={dot.x} cy={dot.y} r={11} fill="#f0b96f" opacity={0.15} filter="url(#glow-gold)"/>
+          <circle cx={dot.x} cy={dot.y} r={6.5} fill="#f0b96f" opacity={0.75} filter="url(#glow-gold)"/>
+          <circle cx={dot.x} cy={dot.y} r={3.5} fill="#ffe9b3"/>
 
           {/* Season labels */}
           {seasons.map((s) => {
-            const pos = labelPos(s.deg, 46);
+            const pos = labelPos(s.labelDeg, 46);
+            // dot on ring at mid of season
+            const midDeg = (s.startDeg + (s.endDeg < s.startDeg ? s.endDeg + 360 : s.endDeg)) / 2;
+            const midDot = toXY(midDeg % 360);
             return (
               <g key={s.name + '-label'}>
-                <text
-                  x={pos.x} y={pos.y - 8}
-                  textAnchor="middle"
-                  fontSize="8"
-                  fontWeight="600"
-                  letterSpacing="0.1em"
-                  fill={s.color}
-                  fontFamily="Inter, sans-serif"
-                  opacity={0.7}
-                  style={{ textTransform: 'uppercase' }}
-                >
+                <text x={pos.x} y={pos.y - 8} textAnchor="middle"
+                  fontSize="8" fontWeight="600" letterSpacing="0.1em"
+                  fill={s.color} fontFamily="Inter, sans-serif" opacity={0.7}>
                   {s.name}
                 </text>
-                <text x={pos.x} y={pos.y + 5} textAnchor="middle" fontSize="13" fill={s.color} opacity={0.6}>
+                <text x={pos.x} y={pos.y + 5} textAnchor="middle" fontSize="13" fill={s.color} opacity={0.55}>
                   {s.icon}
                 </text>
-                {/* Season dot on ring */}
-                {(() => {
-                  const midDeg = (s.startDeg + (s.endDeg < s.startDeg ? s.endDeg + 360 : s.endDeg)) / 2;
-                  const mRad = ((midDeg - 90) * Math.PI) / 180;
-                  const mx = cx + r * Math.cos(mRad);
-                  const my = cy + r * Math.sin(mRad);
-                  return <circle cx={mx} cy={my} r={3} fill={s.color} opacity={0.5}/>;
-                })()}
+                <circle cx={midDot.x} cy={midDot.y} r={3} fill={s.color} opacity={0.4}/>
               </g>
             );
           })}
@@ -211,7 +203,7 @@ export default function YearArc({
             fill="var(--text-primary)" fontFamily="'Cormorant Garamond', Georgia, serif">
             {currentMonthLabel}
           </text>
-          <text x={cx} y={cy + 30} textAnchor="middle" fontSize="11"
+          <text x={cx} y={cy + 28} textAnchor="middle" fontSize="11"
             fill="var(--accent-gold)" fontFamily="'Cormorant Garamond', Georgia, serif" fontWeight="300">
             ——  ·  ——
           </text>
@@ -230,7 +222,6 @@ export default function YearArc({
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
-        gap: 0,
         marginTop: 28,
         paddingTop: 24,
         borderTop: '1px solid rgba(120,145,190,0.12)',
@@ -248,19 +239,12 @@ export default function YearArc({
             <div key={i} style={{ textAlign: 'center', padding: '0 8px' }}>
               <div style={{ fontSize: 18, marginBottom: 6, opacity: 0.5 }}>{item.icon}</div>
               <div style={{
-                fontSize: 28,
-                fontWeight: 300,
-                color: item.color,
+                fontSize: 28, fontWeight: 300, color: item.color, lineHeight: 1,
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
-                lineHeight: 1,
               }}>{item.value}</div>
               <div style={{
-                fontSize: 8,
-                fontWeight: 600,
-                letterSpacing: '0.1em',
-                color: 'var(--text-faint)',
-                fontFamily: 'Inter, sans-serif',
-                marginTop: 6,
+                fontSize: 8, fontWeight: 600, letterSpacing: '0.1em',
+                color: 'var(--text-faint)', fontFamily: 'Inter, sans-serif', marginTop: 6,
               }}>{item.label}</div>
             </div>
           )
@@ -270,12 +254,8 @@ export default function YearArc({
       {/* Quote */}
       <div style={{ textAlign: 'center', marginTop: 24, paddingTop: 20, borderTop: '1px solid rgba(120,145,190,0.08)' }}>
         <p style={{
-          fontSize: 13,
-          fontStyle: 'italic',
-          color: 'var(--text-muted)',
+          fontSize: 13, fontStyle: 'italic', color: 'var(--text-muted)', fontWeight: 300, lineHeight: 1.6,
           fontFamily: "'Cormorant Garamond', Georgia, serif",
-          fontWeight: 300,
-          lineHeight: 1.6,
         }}>
           Time is moving.<br/>Make space for what matters.
         </p>

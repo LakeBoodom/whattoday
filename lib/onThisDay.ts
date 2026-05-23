@@ -44,16 +44,18 @@ interface WikiResponse { events?: WikiEvent[]; holidays?: WikiEvent[] }
 
 async function fetchWikipedia(month: number, day: number): Promise<WikiResponse> {
   try {
-    const res = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/feed/onthisday/all/${month}/${day}`,
-      {
-        next: { revalidate: 86400 },
-        headers: { 'Api-User-Agent': 'WhatToday/1.0 (whattoday.org)' },
-      }
-    );
-    if (!res.ok) return {};
+    const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/all/${month}/${day}`;
+    const res = await fetch(url, {
+      next: { revalidate: 86400 },
+      headers: { 'Api-User-Agent': 'WhatToday/1.0 (whattoday.org)' },
+    });
+    if (!res.ok) {
+      console.error(`[OnThisDay] Wikipedia ${res.status} for ${month}/${day}`);
+      return {};
+    }
     return await res.json();
-  } catch {
+  } catch (err) {
+    console.error('[OnThisDay] Wikipedia fetch failed:', err);
     return {};
   }
 }
@@ -78,9 +80,13 @@ async function fetchNagerCountry(
       `https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`,
       { next: { revalidate: 86400 } }
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(`[OnThisDay] Nager ${res.status} for ${countryCode}/${year}`);
+      return [];
+    }
     return await res.json();
-  } catch {
+  } catch (err) {
+    console.error(`[OnThisDay] Nager fetch failed for ${countryCode}:`, err);
     return [];
   }
 }

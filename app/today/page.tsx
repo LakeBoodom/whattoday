@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import TodayClient from './TodayClient';
 import OnThisDay from '@/components/OnThisDay';
 
-// Revalidate page once per day — Wikipedia data is fresh every midnight
-export const revalidate = 86400;
+// Force server-side rendering so API calls happen at request time, not build time.
+// Individual fetch calls below cache results via Next.js Data Cache (24h TTL).
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'WhatToday — What Day Is It Today?',

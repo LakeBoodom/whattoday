@@ -1,8 +1,9 @@
-// On This Day — data fetching and prioritization logic
+// On This Day — data fetching for holidays and observances only
 // Sources: Wikipedia "On This Day" API + Nager.Date public holidays API
+// Historical events removed — WhatToday focuses on today, not the past.
 // All fetches are cached server-side for 24h (revalidate: 86400)
 
-export type ItemType = 'observance' | 'national-holiday' | 'event';
+export type ItemType = 'observance' | 'national-holiday';
 
 export interface TodayItem {
   type: ItemType;
@@ -13,7 +14,6 @@ export interface TodayItem {
 }
 
 // Top countries by population, in priority order.
-// These are all confirmed supported by Nager.Date.
 export const PRIORITY_COUNTRIES = [
   { code: 'IN', name: 'India',          pop: 1400 },
   { code: 'US', name: 'United States',  pop: 335  },
@@ -40,11 +40,10 @@ export const PRIORITY_COUNTRIES = [
 // ─── Wikipedia ────────────────────────────────────────────────────────────────
 
 interface WikiEvent { text: string; year?: number }
-interface WikiResponse { events?: WikiEvent[]; holidays?: WikiEvent[] }
+interface WikiResponse { holidays?: WikiEvent[] }
 
 async function fetchWikipedia(month: number, day: number): Promise<WikiResponse> {
   try {
-    // Wikipedia API requires zero-padded month/day (e.g. 05/23, not 5/23)
     const mm = String(month).padStart(2, '0');
     const dd = String(day).padStart(2, '0');
     const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/all/${mm}/${dd}`;
@@ -66,7 +65,7 @@ async function fetchWikipedia(month: number, day: number): Promise<WikiResponse>
 // ─── Nager.Date ───────────────────────────────────────────────────────────────
 
 interface NagerHoliday {
-  date: string;        // "2025-05-26"
+  date: string;
   localName: string;
   name: string;
   countryCode: string;
@@ -74,10 +73,7 @@ interface NagerHoliday {
   types: string[];
 }
 
-async function fetchNagerCountry(
-  year: number,
-  countryCode: string
-): Promise<NagerHoliday[]> {
+async function fetchNagerCountry(year: number, countryCode: string): Promise<NagerHoliday[]> {
   try {
     const res = await fetch(
       `https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`,
@@ -96,35 +92,29 @@ async function fetchNagerCountry(
 
 // ─── Main fetch + prioritize ──────────────────────────────────────────────────
 
-const MAX_ITEMS = 10;
 const MAX_OBSERVANCES = 3;
-const MAX_NATIONAL = 6;
-// Remaining slots (up to MAX_ITEMS) filled with historical events
+const MAX_NATIONAL = 8;
 
 export async function getOnThisDayItems(
   month: number,
   day: number,
   year: number,
-  userCountryCode?: string // from geolocation, optional
+  userCountryCode?: string
 ): Promise<TodayItem[]> {
   const todayStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  // Fetch Wikipedia + all Nager countries in parallel
   const [wikiData, ...nagerResults] = await Promise.allSettled([
     fetchWikipedia(month, day),
     ...PRIORITY_COUNTRIES.map((c) => fetchNagerCountry(year, c.code)),
   ]);
 
   // ── 1. International observances (Wikipedia holidays) ──────────────────────
-  const wikiPayload: WikiResponse =
-    wikiData.status === 'fulfilled' ? wikiData.value : {};
-
+  const wikiPayload: WikiResponse = wikiData.status === 'fulfilled' ? wikiData.value : {};
   const observances: TodayItem[] = (wikiPayload.holidays ?? [])
     .slice(0, MAX_OBSERVANCES)
     .map((h) => ({ type: 'observance', text: h.text, year: null }));
 
   // ── 2. National public holidays (Nager.Date) ──────────────────────────────
-  // Build country→holidays map
   const countryHolidays = new Map<string, NagerHoliday[]>();
   nagerResults.forEach((result, idx) => {
     if (result.status === 'fulfilled') {
@@ -134,7 +124,6 @@ export async function getOnThisDayItems(
     }
   });
 
-  // Sort: user's country first, then by population (already ordered in PRIORITY_COUNTRIES)
   const sortedCodes = [...PRIORITY_COUNTRIES]
     .filter((c) => countryHolidays.has(c.code))
     .sort((a, b) => {
@@ -160,15 +149,5 @@ export async function getOnThisDayItems(
     }
   }
 
-  // ── 3. Historical events to fill remaining slots ───────────────────────────
-  const usedSlots = observances.length + nationalHolidays.length;
-  const remainingSlots = MAX_ITEMS - usedSlots;
-
-  const events: TodayItem[] = (wikiPayload.events ?? [])
-    .filter((e) => e.year && e.year > 1800 && e.text && e.text.length < 180)
-    .sort((a, b) => (b.year ?? 0) - (a.year ?? 0)) // most recent first
-    .slice(0, remainingSlots)
-    .map((e) => ({ type: 'event', text: e.text, year: e.year }));
-
-  return [...observances, ...nationalHolidays, ...events];
+  return [...observances, ...nationalHolidays];
 }

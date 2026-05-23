@@ -1,6 +1,5 @@
 import { getOnThisDayItems, type TodayItem, type ItemType } from '@/lib/onThisDay';
 
-// Country code → flag emoji
 function countryFlag(code: string): string {
   return code
     .toUpperCase()
@@ -13,7 +12,6 @@ function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
 }
 
-// Badge on the left of each item
 function ItemBadge({ item }: { item: TodayItem }) {
   const base: React.CSSProperties = {
     flexShrink: 0,
@@ -24,7 +22,6 @@ function ItemBadge({ item }: { item: TodayItem }) {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 1,
   };
 
   if (item.type === 'observance') {
@@ -39,41 +36,18 @@ function ItemBadge({ item }: { item: TodayItem }) {
     );
   }
 
-  if (item.type === 'national-holiday') {
-    return (
-      <div style={{
-        ...base,
-        background: 'rgba(127,167,232,0.10)',
-        border: '1px solid rgba(127,167,232,0.18)',
-        fontSize: 22,
-      }}>
-        {item.countryCode ? countryFlag(item.countryCode) : '🌍'}
-      </div>
-    );
-  }
-
-  // Historical event — year badge
   return (
     <div style={{
       ...base,
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'rgba(127,167,232,0.10)',
+      border: '1px solid rgba(127,167,232,0.18)',
+      fontSize: 22,
     }}>
-      <span style={{
-        fontSize: 11,
-        fontWeight: 500,
-        color: 'var(--text-muted)',
-        fontFamily: 'Inter, sans-serif',
-        textAlign: 'center',
-        lineHeight: 1.2,
-      }}>
-        {item.year}
-      </span>
+      {item.countryCode ? countryFlag(item.countryCode) : '🌍'}
     </div>
   );
 }
 
-// Tag above the text
 function ItemTag({ type, country }: { type: ItemType; country?: string }) {
   if (type === 'observance') {
     return (
@@ -117,9 +91,7 @@ interface OnThisDayProps {
   userCountryCode?: string;
 }
 
-export default async function OnThisDay({
-  month, day, year, userCountryCode,
-}: OnThisDayProps) {
+export default async function OnThisDay({ month, day, year, userCountryCode }: OnThisDayProps) {
   const items = await getOnThisDayItems(month, day, year, userCountryCode);
   if (items.length === 0) return null;
 
@@ -136,7 +108,7 @@ export default async function OnThisDay({
   return (
     <div style={cardStyle}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 18 }}>
+      <div style={{ marginBottom: 18 }}>
         <p style={{
           fontSize: 11,
           fontWeight: 600,
@@ -146,10 +118,7 @@ export default async function OnThisDay({
           fontFamily: 'Inter, sans-serif',
           margin: 0,
         }}>
-          On This Day
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--text-faint)', fontFamily: 'Inter, sans-serif', margin: 0 }}>
-          {items.length} {items.length === 1 ? 'entry' : 'entries'}
+          Holidays Today
         </p>
       </div>
 

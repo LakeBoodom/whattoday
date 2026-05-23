@@ -10,6 +10,26 @@ const tabs = [
   { label: 'Year', href: '/year' },
 ];
 
+function WhatTodayLogo() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Left arc */}
+      <path d="M13 6 C7 8.5 7 23.5 13 26" stroke="#9B8BE8" strokeWidth="1.4" strokeLinecap="round" fill="none"/>
+      {/* Right arc */}
+      <path d="M19 6 C25 8.5 25 23.5 19 26" stroke="#F6C66A" strokeWidth="1.4" strokeLinecap="round" fill="none"/>
+      {/* Vertical center line */}
+      <line x1="16" y1="5" x2="16" y2="11" stroke="#F6C66A" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="16" y1="21" x2="16" y2="27" stroke="#F6C66A" strokeWidth="1.2" strokeLinecap="round"/>
+      {/* Top dot */}
+      <circle cx="16" cy="4.5" r="1.5" fill="#F6C66A"/>
+      {/* Bottom dot */}
+      <circle cx="16" cy="27.5" r="1.5" fill="#F6C66A"/>
+      {/* Center dot */}
+      <circle cx="16" cy="16" r="2.2" fill="#F6C66A"/>
+    </svg>
+  );
+}
+
 export default function Nav() {
   const pathname = usePathname();
   const { city } = useLocation();
@@ -21,19 +41,10 @@ export default function Nav() {
     <nav style={{ borderBottom: '1px solid var(--divider)' }} className="w-full flex items-center justify-between px-6 md:px-10 py-4">
       {/* Logo */}
       <Link href="/today" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="12" cy="12" r="5"/>
-          <line x1="12" y1="1" x2="12" y2="3"/>
-          <line x1="12" y1="21" x2="12" y2="23"/>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-          <line x1="1" y1="12" x2="3" y2="12"/>
-          <line x1="21" y1="12" x2="23" y2="12"/>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-        </svg>
-        <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px', letterSpacing: '0.02em' }}>
-          WhatToday
+        <WhatTodayLogo />
+        <span style={{ fontSize: '15px', letterSpacing: '0.01em', fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 400 }}>What</span>
+          <span style={{ color: 'var(--accent-gold)', fontWeight: 400 }}>Today</span>
         </span>
       </Link>
 

@@ -174,3 +174,99 @@ export function computeDateStats(date: Date, latitude: number = 60): DateStats {
 }
 
 export { SEASON_INFO };
+
+// ─── Solar / Solstice helpers ─────────────────────────────────────────────────
+
+export interface SolsticeData {
+  longestDayCity: string;
+  longestDayCountry: string;
+  longestDayLat: string;
+  longestDayDuration: string;
+  shortestDayCity: string;
+  shortestDayCountry: string;
+  shortestDayLat: string;
+  shortestDayDuration: string;
+  solsticeCountdown: number;
+  nextSolsticeName: string;
+}
+
+// Approximate solstice dates
+function getNextSolstice(date: Date): { date: Date; name: string } {
+  const y = date.getFullYear();
+  const juneSolstice = new Date(y, 5, 21);
+  const decSolstice = new Date(y, 11, 21);
+  if (date <= juneSolstice) return { date: juneSolstice, name: 'June Solstice' };
+  if (date <= decSolstice) return { date: decSolstice, name: 'December Solstice' };
+  return { date: new Date(y + 1, 5, 21), name: 'June Solstice' };
+}
+
+// Approximate daylight at a given latitude and day of year using simple formula
+function daylightHours(lat: number, dayOfYear: number): number {
+  const decl = -23.45 * Math.cos((2 * Math.PI / 365) * (dayOfYear + 10));
+  const latRad = (lat * Math.PI) / 180;
+  const declRad = (decl * Math.PI) / 180;
+  const cosH = -Math.tan(latRad) * Math.tan(declRad);
+  if (cosH <= -1) return 24; // midnight sun
+  if (cosH >= 1) return 0;   // polar night
+  const H = (Math.acos(cosH) * 180) / Math.PI;
+  return (2 * H) / 15;
+}
+
+function formatDaylight(hours: number): string {
+  if (hours >= 23.5) return '24 hours of daylight';
+  if (hours <= 0.5) return '0 hours of daylight';
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return m === 0 ? `${h}h of daylight` : `${h}h ${m}m of daylight`;
+}
+
+export function getSolsticeData(date: Date): SolsticeData {
+  const doy = getDayOfYear(date);
+  const { date: nextSolsticeDate, name: nextSolsticeName } = getNextSolstice(date);
+  const countdown = Math.ceil((nextSolsticeDate.getTime() - date.getTime()) / 86400000);
+
+  // Cities for longest/shortest day
+  // Northern summer: Tromsø (69°N) longest, Ushuaia (54°S) shortest
+  // Northern winter: Ushuaia longest, Tromsø shortest
+  const isNorthernSummer = nextSolsticeName === 'June Solstice';
+
+  const tromsøHours = daylightHours(69.6, doy);
+  const ushuaiaHours = daylightHours(-54.8, doy);
+
+  let longestCity: string, longestCountry: string, longestLat: string, longestDur: string;
+  let shortestCity: string, shortestCountry: string, shortestLat: string, shortestDur: string;
+
+  if (isNorthernSummer) {
+    longestCity = 'Tromsø'; longestCountry = 'Norway'; longestLat = '69° N';
+    longestDur = formatDaylight(tromsøHours);
+    shortestCity = 'Ushuaia'; shortestCountry = 'Argentina'; shortestLat = '54° S';
+    shortestDur = formatDaylight(ushuaiaHours);
+  } else {
+    longestCity = 'Ushuaia'; longestCountry = 'Argentina'; longestLat = '54° S';
+    longestDur = formatDaylight(ushuaiaHours);
+    shortestCity = 'Tromsø'; shortestCountry = 'Norway'; shortestLat = '69° N';
+    shortestDur = formatDaylight(tromsøHours);
+  }
+
+  return {
+    longestDayCity: longestCity,
+    longestDayCountry: longestCountry,
+    longestDayLat: longestLat,
+    longestDayDuration: longestDur,
+    shortestDayCity: shortestCity,
+    shortestDayCountry: shortestCountry,
+    shortestDayLat: shortestLat,
+    shortestDayDuration: shortestDur,
+    solsticeCountdown: countdown,
+    nextSolsticeName,
+  };
+}
+
+// Month label like "Late May", "Early June", "Mid October"
+export function getMonthLabel(date: Date): string {
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'long' });
+  if (day <= 10) return `Early ${month}`;
+  if (day <= 20) return `Mid ${month}`;
+  return `Late ${month}`;
+}

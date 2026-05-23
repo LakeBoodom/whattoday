@@ -44,7 +44,10 @@ interface WikiResponse { events?: WikiEvent[]; holidays?: WikiEvent[] }
 
 async function fetchWikipedia(month: number, day: number): Promise<WikiResponse> {
   try {
-    const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/all/${month}/${day}`;
+    // Wikipedia API requires zero-padded month/day (e.g. 05/23, not 5/23)
+    const mm = String(month).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/all/${mm}/${dd}`;
     const res = await fetch(url, {
       next: { revalidate: 86400 },
       headers: { 'Api-User-Agent': 'WhatToday/1.0 (whattoday.org)' },

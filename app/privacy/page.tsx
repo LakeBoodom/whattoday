@@ -113,13 +113,7 @@ export default function PrivacyPage() {
         <h2 style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.75rem' }}>Contact</h2>
         <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--text-muted)' }}>
           Privacy questions can be sent to{' '}
-          <a
-            href="mailto:hello@whattoday.org"
-            style={{ color: 'var(--accent-gold)', textDecoration: 'none' }}
-          >
-            hello@whattoday.org
-          </a>
-          .
+          <span style={{ color: 'var(--accent-gold)' }}>heikki [at] stanssi.fi</span>.
         </p>
       </section>
     </div>

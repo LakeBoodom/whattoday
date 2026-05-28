@@ -43,23 +43,17 @@ export default function ContactPage() {
           <p style={{ fontSize: '11px', letterSpacing: '0.08em', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
             General enquiries &amp; feedback
           </p>
-          <a
-            href="mailto:hello@whattoday.org"
-            style={{ fontSize: '15px', color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 500 }}
-          >
-            hello@whattoday.org
-          </a>
+          <span style={{ fontSize: '15px', color: 'var(--accent-gold)', fontWeight: 500 }}>
+            heikki [at] stanssi.fi
+          </span>
         </div>
         <div>
           <p style={{ fontSize: '11px', letterSpacing: '0.08em', color: 'var(--text-faint)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
             Privacy &amp; data questions
           </p>
-          <a
-            href="mailto:hello@whattoday.org"
-            style={{ fontSize: '15px', color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 500 }}
-          >
-            hello@whattoday.org
-          </a>
+          <span style={{ fontSize: '15px', color: 'var(--accent-gold)', fontWeight: 500 }}>
+            heikki [at] stanssi.fi
+          </span>
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Link from 'next/link';
 import './globals.css';
 import Nav from '@/components/Nav';
 import { LocationProvider } from '@/lib/locationContext';
@@ -45,8 +46,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="flex-1 max-w-5xl mx-auto w-full">
               {children}
             </main>
-            <footer className="w-full flex justify-center py-6 border-t text-xs" style={{ borderColor: 'var(--divider)', color: 'var(--text-faint)' }}>
-              WhatToday &mdash; a calm perspective on time
+            <footer className="w-full flex flex-col items-center gap-2 py-6 border-t text-xs" style={{ borderColor: 'var(--divider)', color: 'var(--text-faint)' }}>
+              <span>WhatToday &mdash; a calm perspective on time</span>
+              <div className="flex items-center gap-4">
+                <Link href="/privacy" style={{ color: 'var(--text-faint)', textDecoration: 'none' }} className="hover:opacity-80 transition-opacity">
+                  Privacy Policy
+                </Link>
+                <span style={{ opacity: 0.4 }}>·</span>
+                <Link href="/contact" style={{ color: 'var(--text-faint)', textDecoration: 'none' }} className="hover:opacity-80 transition-opacity">
+                  Contact
+                </Link>
+              </div>
             </footer>
           </div>
         </LocationProvider>
